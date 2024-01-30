@@ -35,7 +35,16 @@ if __name__ == '__main__':
                     print(f'Number of items in bins: {sum(len(bin.items) for bin in binManager.bins)} \n\n')
 
     else:
+        algorith = BinPackingAlgorithmType.maxrects
+        heuristic = BinHeuristicType.worst_width_fit
+        rotation = True
+        sort = SortStrategy.HEIGHT_DESC
 
-        binManager = BinManager(bin_width, bin_height, BinPackingAlgorithmType.skyline, BinHeuristicType.first_fit,
-                                True, SortStrategy.HEIGHT_DESC)
+        binManager = BinManager(bin_width, bin_height, algorith, heuristic, rotation, sort)
         binManager.execute(items)
+        plot_title = f'Algorithm: {algorith}, Heuristic: {heuristic}, Rotation: {rotation}, Sort: {sort}'
+        binManager.visualize_bins(12, plot_title)
+        print(f'\t\t{plot_title}')
+        print(f'Number of bins: {len(binManager.bins)}')
+        print(f'Number of items: {len(binManager.items)}')
+        print(f'Number of items in bins: {sum(len(bin.items) for bin in binManager.bins)} \n\n')
