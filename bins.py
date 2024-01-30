@@ -6,6 +6,7 @@ from algorithm_types import BinHeuristicType, BinPackingAlgorithmType, SortStrat
 from items_type import Item, Bin
 from packing_algorithm import PackingAlgorithm
 from shelf import ShelfAlgorithm
+from maxrects import MaxRectsAlgorithm
 
 
 class BinManager:
@@ -25,6 +26,8 @@ class BinManager:
         match algorithm:
             case BinPackingAlgorithmType.shelf:
                 return ShelfAlgorithm(self.rotation, self.heuristic)
+            case BinPackingAlgorithmType.maxrects:
+                return MaxRectsAlgorithm(self.rotation, self.heuristic)
             case _:
                 raise ValueError(f'Unknown algorithm: {self.algorithm}')
 

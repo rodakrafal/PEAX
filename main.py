@@ -5,7 +5,7 @@ from bins import BinManager
 from item_generator import ItemGenerator
 
 if __name__ == '__main__':
-    run_all = True
+    run_all = False
 
     bin_width = 100
     bin_height = 100
@@ -36,7 +36,7 @@ if __name__ == '__main__':
                     print(f'Number of items in bins: {sum(len(bin.items) for bin in binManager.bins)} \n\n')
 
     else:
-        binManager = BinManager(bin_width, bin_height, BinPackingAlgorithmType.shelf, BinHeuristicType.best_height_fit,
+        binManager = BinManager(bin_width, bin_height, BinPackingAlgorithmType.maxrects, BinHeuristicType.best_height_fit,
                                 True, SortStrategy.HEIGHT_DESC)
         binManager.execute(items)
         binManager.visualize_bins(12)
