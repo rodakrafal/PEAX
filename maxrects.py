@@ -1,70 +1,47 @@
 from dataclasses import dataclass, field
-import typing
 
-# from dataclasses import dataclass, field
-from typing import List, Dict
+
+import typing
+from typing import List, Dict, Tuple
 
 from algorithm_types import BinHeuristicType
 from items_type import Bin, Item
 from packing_algorithm import PackingAlgorithm
 
-
-class AvailableRect(
-    typing.NamedTuple(
-        "AvailableRect", [("x", int), ("y", int), ("width", int), ("height", int)]
-    )
-):
+@dataclass
+class AvailableRect:
     x: int
     y: int
     width: int
     height: int
-
-    @property
-    def area(self) -> int:
-        return self.width * self.height
-
-
-class MaxRectsAlgorithm(PackingAlgorithm):
-    height: int
-    width: int
     items: List[Item] = field(default_factory=list)
     rotation: bool = False
 
-    def __init__(self, rotation: bool, heuristic: BinHeuristicType):
-        super().__init__(rotation, heuristic)
-        self.free_area = self.area
-        self.bin_rects: Dict[str, List[AvailableRect]] = {}
-        # self.available_rects = [AvailableRect(0, 0, self.width, self.height)]
-
     @property
     def area(self) -> int:
         return self.width * self.height
 
-    def initialize_bin(self, bin: Bin) -> None:
-        """
-        Initialize a bin with just one available rect.
-
-        :param bin: The bin to be initialized.
-        """
-        self.bin_rects[bin.id] = [AvailableRect(0, 0, bin.width, bin.height)]
+    @area.setter
+    def area(self, value: int) -> None:
+        self.width = value
 
     def check_item_fit(
-        self, item: Item, available_rect: AvailableRect
+        self, item: Item
     ) -> tuple[bool, bool]:
         """
-        Check if an item fits in the given rect, considering the possibility of rotation.
+        Check if an item fits in the rect, considering the possibility of rotation.
 
         :param item: The item to be checked.
         :return: A tuple where the first element is a boolean indicating if the item fits,
                  and the second element is a boolean indicating if rotation is necessary.
         """
         fits_without_rotation = (
-            item.width <= available_rect.width and item.height <= available_rect.height
+            item.width <= self.width and item.height <= self.height
         )
         needs_rotation = (
             self.rotation
-            and item.height <= available_rect.width
-            and item.width <= available_rect.height
+            and item.height <= self.width
+            and item.width <= self.height
         )
 
         if fits_without_rotation:
@@ -74,22 +51,36 @@ class MaxRectsAlgorithm(PackingAlgorithm):
         else:
             return False, False
 
-    def insert_item(self, item: Item, available_rect: AvailableRect) -> bool:
+    def insert_item(self, item: Item) -> bool:
         """
         Insert an item into the rect.
 
         :param item: The item to be inserted.
         :return: Boolean indicating whether the item was successfully inserted.
         """
-        fits, needs_rotation = self.check_item_fit(item, available_rect)
+        fits, needs_rotation = self.check_item_fit(item)
         if fits:
             if needs_rotation:
                 item.rotate()
-            item.x, item.y = available_rect.x, available_rect.y
+            item.x, item.y = self.x, self.y
             self.items.append(item)
-            self.free_area -= item.area
+            self.area -= item.area
             return True
         return False
+
+
+class MaxRectsAlgorithm(PackingAlgorithm):
+    def __init__(self, rotation: bool, heuristic: BinHeuristicType):
+        super().__init__(rotation, heuristic)
+        self.bin_rects: Dict[str, List[AvailableRect]] = {}
+
+    def initialize_bin(self, bin: Bin) -> None:
+        """
+        Initialize a bin with just one available rect.
+
+        :param bin: The bin to be initialized.
+        """
+        self.bin_rects[bin.id] = [AvailableRect(0, 0, bin.width, bin.height)]
 
     def _split_rect(self, rect: AvailableRect, item: Item) -> List[AvailableRect]:
         """
@@ -204,36 +195,37 @@ class MaxRectsAlgorithm(PackingAlgorithm):
             and rect1.y + rect1.height <= rect2.y + rect2.height
         )
 
-    def _remove_doubled_rects(self) -> None:
+    def _remove_doubled_rects(self, bin: Bin) -> None:
         """
-        Remove doubled rects from available rects.
+        Remove doubled rects from given bin.
 
+        :param bin: The bin for which rects should be checked.
         """
         doubled_rects = []
-        for rect1 in self.available_rects:
-            for rect2 in self.available_rects:
+        for rect1 in self.bin_rects[bin.id]:
+            for rect2 in self.bin_rects[bin.id]:
                 if rect1 != rect2 and self._doubled_rect(rect1, rect2):
                     doubled_rects.append(rect1)
-        self.available_rects = [
-            rect for rect in self.available_rects if rect not in doubled_rects
+        self.bin_rects[bin.id] = [
+            rect for rect in self.bin_rects[bin.id] if rect not in doubled_rects
         ]
 
-    def _remove_overlaps(self, item: Item) -> None:
+    def _remove_overlaps(self, bin: Bin, item: Item) -> None:
         """
         Remove rects that are overlapped by an item.
 
+        :param bin: The bin for which rects should be checked.
         :param item: The item to be checked.
         """
         new_rects = []
-        for rect in self.available_rects:
+        for rect in self.bin_rects[bin.id]:
             overlapped_area = self._item_rect_overlap(item, rect)
             if overlapped_area:
                 new_rects.extend(self._cut_out_overlapped_area(overlapped_area, rect))
             else:
                 new_rects.append(rect)
-        self.available_rects = new_rects
-        _remove_doubled_rects()
-
+        self.bin_rects[bin.id] = new_rects
+        self._remove_doubled_rects(bin)
 
     def evaluate_rect(self, rect: AvailableRect, item: Item) -> float:
         """
@@ -243,7 +235,7 @@ class MaxRectsAlgorithm(PackingAlgorithm):
         :param item: The item to be placed.
         :return: A score indicating the rect's suitability.
         """
-        fits, needs_rotation = self.check_item_fit(item, rect)
+        fits, needs_rotation = rect.check_item_fit(item)
         if not fits:
             return 0
 
@@ -284,36 +276,43 @@ class MaxRectsAlgorithm(PackingAlgorithm):
             if needs_rotation:
                 item.rotate() # Restore original dimensions
 
-
-    def _find_best_rect(self, item: Item) -> AvailableRect | None:
+    def _find_best_rect(self, bin: Bin, item: Item) -> AvailableRect | None:
         """
         Find the best rect for an item.
 
+        :param bin: The bin in which to pack the item.
         :param item: The item to be placed in a rect.
         :return: The selected rect considered best for the item.
         """
         best_rect = None
         best_score = 0
-        for rect in self.available_rects:
+        for rect in self.bin_rects[bin.id]:
             score = self.evaluate_rect(rect, item)
             if score > best_score:
                 best_score = score
                 best_rect = rect
         return best_rect
-        
-    def pack_item(self, item: Item) -> bool:
+
+    def pack_item(self, bin: Bin, item: Item) -> bool:
         """
         Pack an item into a bin.
 
+        :param bin: The bin in which to pack the item.
         :param item: The item to be packed.
         :return: Boolean indicating whether the item was successfully packed.
         """
-        best_rect = self._find_best_rect(item)
+        if bin.id not in self.bin_rects:
+            self.initialize_bin(bin)
+
+        best_rect = self._find_best_rect(bin, item)
         if best_rect:
-            self.insert_item(item, best_rect)
-            self.available_rects.extend(self._split_rect(best_rect, item))
-            self.available_rects.remove(best_rect)
-            self._remove_overlaps(item)
+            if not best_rect.insert_item(item):
+                return False
+
+            self.bin_rects[bin.id].extend(self._split_rect(best_rect, item))
+            self.bin_rects[bin.id].remove(best_rect)
+            self._remove_overlaps(bin, item)
+            bin.items.append(item)
             return True
         return False
 
@@ -325,12 +324,19 @@ class MaxRectsAlgorithm(PackingAlgorithm):
         :param item: The item to be placed.
         :return: A score indicating the bin's suitability.
         """
-        fits, needs_rotation = self.check_item_fit(item, bin)
+        fits, _ = self.check_item_fit(bin, item)
+        best_score = 0
         if not fits:
-            return 0
+            return best_score
 
+        for rect in self.bin_rects[bin.id]:
+            score = self.evaluate_rect(rect, item)
+            if score > best_score:
+                best_score = score
+            if best_score == 1:
+                return best_score
         
-
+        return best_score or 0
 
     def find_best_bin(self, bins: List[Bin], item: Item) -> Bin:
         """
@@ -347,4 +353,6 @@ class MaxRectsAlgorithm(PackingAlgorithm):
             if score > best_score:
                 best_score = score
                 best_bin = bin
+            if best_score == 1:
+                return best_bin
         return best_bin
