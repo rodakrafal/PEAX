@@ -8,6 +8,7 @@ from maxrects import MaxRectsAlgorithm
 from packing_algorithm import PackingAlgorithm
 from shelf import ShelfAlgorithm
 from skyline import SkylineAlgorithm
+from guillotine import GuillotineAlgorithm
 
 
 class BinManager:
@@ -31,6 +32,8 @@ class BinManager:
                 return SkylineAlgorithm(self.rotation, self.heuristic)
             case BinPackingAlgorithmType.maxrects:
                 return MaxRectsAlgorithm(self.rotation, self.heuristic)
+            case BinPackingAlgorithmType.guillotine:
+                return GuillotineAlgorithm(self.rotation, self.heuristic)
             case _:
                 raise ValueError(f'Unknown algorithm: {self.algorithm}')
 
