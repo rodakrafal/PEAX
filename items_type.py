@@ -89,7 +89,8 @@ class Bin:
         :param ax: The Matplotlib Axes object on which to draw.
         """
         for item in self.items:
-            rect = Rectangle((item.x, item.y), item.width, item.height, linewidth=1, edgecolor='black', facecolor='blue')
+            color = 'red' if item.rotated else 'blue'
+            rect = Rectangle((item.x, item.y), item.width, item.height, linewidth=1, edgecolor='black', facecolor=color)
             ax.add_patch(rect)
             ax.set_xlim(0, self.width)
             ax.set_ylim(0, self.height)
