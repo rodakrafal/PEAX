@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 
 from algorithm_types import BinHeuristicType, BinPackingAlgorithmType, SortStrategy
 from items_type import Item, Bin
+from maxrects import MaxRectsAlgorithm
 from packing_algorithm import PackingAlgorithm
 from shelf import ShelfAlgorithm
 from skyline import SkylineAlgorithm
@@ -28,6 +29,8 @@ class BinManager:
                 return ShelfAlgorithm(self.rotation, self.heuristic)
             case BinPackingAlgorithmType.skyline:
                 return SkylineAlgorithm(self.rotation, self.heuristic)
+            case BinPackingAlgorithmType.maxrects:
+                return MaxRectsAlgorithm(self.rotation, self.heuristic)
             case _:
                 raise ValueError(f'Unknown algorithm: {self.algorithm}')
 
